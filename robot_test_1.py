@@ -2,6 +2,20 @@ from machine import Pin, PWM
 from time import sleep
 from neopixel import NeoPixel as np
 
+"""
+Wiring Notes
+
+UsSR Echo: GP14/19
+UsSR Trig: GP13/17
+
+UsSL Echo: GP17/22
+UsSL Trig: GP16/21
+
+UsSF Echo: Yellow \ GP11/15
+UsSF Trig: Orange \ GP10/14
+
+
+"""
 
 # Motor A pins
 ENA = PWM(Pin(2))
@@ -49,6 +63,13 @@ def spin_left_motor(speed):
         IN4.high()
         ENB.duty_u16(int(-speed * 65535))
 
+def stayMiddle(USL, USR): #function to keep the robot between two walls, inputs two values
+    if USL > USR: #if the robot is further from the left wall than the right wall, left motor needs to be powered less
+        if USL-USR > 0: #if the difference is minimal it doesn't change power values
+            return((1-(USL-USR)), 1) #returns a lower power level for the left wheel so that the bot turns left
+    else: #right is further than left, turn right
+        if USR-USL > 0: #checks that the difference is greatish
+            return(1, (1-(USR-USL))) #returns a lower power level for right
 
 light_strip_1 = np(Pin(0), 8)
 light_strip_2 = np(Pin(15), 8)
@@ -69,19 +90,19 @@ while True:
     sleep(3.85)
     stop()
 
-while True:
+while True: #color LED Control
 
-    for i in range(8):
-        if not color_swap:
-            light_strip_1[i] = color1
-            light_strip_2[i] = color2
+    for i in range(8): #8 Light locations to light
+        if not color_swap: #sets the color for each location controlled by color_swap = not color_swap
+            light_strip_1[i] = color1 #colors in 1 are color 1
+            light_strip_2[i] = color2 #colors in 2 are color 2
         else:
-            light_strip_1[i] = color2
-            light_strip_2[i] = color1
-        color_swap = not color_swap
+            light_strip_1[i] = color2 #colors swap so 1 is 2
+            light_strip_2[i] = color1 #and 2 is 1
+        color_swap = not color_swap #boolean gets flipped to alternate colors
     
-    color_swap = not color_swap
+    color_swap = not color_swap #displaced by one so that it shifts over to loop
     light_strip_1.write()
     light_strip_2.write()
     
-    sleep(0.5)
+    sleep(0.5) #waits 5 seconds before switching
