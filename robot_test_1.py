@@ -16,6 +16,19 @@ ENB = PWM(Pin(7))
 ENA.freq(1000)
 ENB.freq(1000)
 
+def stop():
+    ENA.duty_u16(0)
+    ENB.duty_u16(0)
+
+def drive_straight():
+    IN1.high()
+    IN2.low()
+    ENA.duty_u16(int(0.975 * 65535))
+    
+    IN3.high()
+    IN4.low()
+    ENB.duty_u16(int(1.0 * 65535))
+
 def spin_right_motor(speed):
     if speed >= 0:
         IN1.high()
@@ -45,12 +58,16 @@ color2 = (0, 15, 150)
 color_swap = False
 
 start_button = Pin(27, Pin.IN)
+while True:
+    print("Waiting for start button...")
+    while start_button.value() == 0:
+        sleep(0.05)
+        print(start_button.value())
+    print("Button pressed. Starting robot!")
 
-print("Waiting for start button...")
-while start_button.value() == 0:
-    sleep(0.05)
-    print(start_button.value())
-print("Button pressed. Starting robot!")
+    drive_straight()
+    sleep(3.85)
+    stop()
 
 while True:
 
@@ -66,8 +83,5 @@ while True:
     color_swap = not color_swap
     light_strip_1.write()
     light_strip_2.write()
-    
-    spin_left_motor(1.0)
-    spin_right_motor(1.0)
     
     sleep(0.5)
