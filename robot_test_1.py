@@ -1,5 +1,5 @@
 from machine import Pin, PWM
-from time import sleep
+import time
 from neopixel import NeoPixel as np
 import utime
 
@@ -15,8 +15,6 @@ UsSL Trig: GP26
 UsSF Echo: GP1
 UsSF Trig: GP0
 
-change motor pins pls
-
 """
 
 # Motor A pins
@@ -29,8 +27,8 @@ IN3 = Pin(19, Pin.OUT)
 IN4 = Pin(20, Pin.OUT)
 ENB = PWM(Pin(21))
 
-trigger_left = Pin(26, Pin.OUT)
-echo_left = Pin(27, Pin.OUT)
+#trigger_left = Pin(26, Pin.OUT)
+#echo_left = Pin(27, Pin.OUT)
 
 trigger_center = Pin(0, Pin.OUT)
 echo_center = Pin(1, Pin.OUT)
@@ -45,14 +43,14 @@ def stop():
     ENA.duty_u16(0)
     ENB.duty_u16(0)
 
-def drive_straight():
-    IN1.high()
+def drive_straight(modR,modL):
+    IN1.high()#Right Motor
     IN2.low()
-    ENA.duty_u16(int(0.975 * 65535))
+    ENA.duty_u16(int(modR*0.975 * 65535))
     
-    IN3.high()
+    IN3.high()#Left Motor
     IN4.low()
-    ENB.duty_u16(int(1.0 * 65535))
+    ENB.duty_u16(int(modL*1.0 * 65535))
 
 def spin_right_motor(speed):
     if speed >= 0:
@@ -81,7 +79,21 @@ def stayMiddle(USL, USR): #function to keep the robot between two walls, inputs 
     else: #right is further than left, turn right
         if USR-USL > 0: #checks that the difference is greatish
             return(1, (1-(USR-USL))) #returns a lower power level for right
+        
+def midStay(USS_Side): #takes in the distance from the wall in cm
+    """ built for if the side sensor is on the right side of the robot"""
+    modify = 1 #controls how much the slower wheel needs to slow down
+    modify_mod = 1 #change the factor that it modifies the modify variable
+    if USS_Side > 8: #wall is further from the robot than 8cm
+        modify = (8/(USS_Side)) #As USS Side increases past 8, the motor slows down
+        drive_straight(modify,1) #right motor needs to be slowed down
+        return()
+    if USS_Side < 7: #changes only if it's closer than 7
+        modify = ((USS_Side)/7) #as USS Side decreases past 7, the motor slows down more and more
+        drive_straight(1,modify) #drives straight and power values 1 on right and slower modified on left
+        return()
 
+"""
 def readUltrasonics():
 
     trigger_left.low()
@@ -127,39 +139,40 @@ def readUltrasonics():
     sensor_right = timepassed * 0.0343 / 2
     
     return [sensor_left, sensor_center, sensor_right]
+"""
 
-def measure_distance():
-    """Measure distance using ultrasonic sensor"""
-    # Send out a pulse from trigger pin
-    trigger_left.low()
-    utime.sleep_us(2)
-    trigger_left.high()
-    utime.sleep_us(5)
-    trigger_left.low()
-    
-    # Measure time of signal on vs off
-    while echo_left.value() == 0:
-        signaloff = utime.ticks_us()
-    while echo_left.value() == 1:
-        signalon = utime.ticks_us()
-    
-    # Calculate time passed
-    timepassed = signalon - signaloff
-    
-    # Calculate distance from speed of sound (0.0343 cm/microsecond)
-    distance = (timepassed * 0.0343) / 2
-    
-    return distance
-    
+def ultra(trigger, echo): #inputs are the GPIO pins
+    avgDist = [] #avg list to hold values so that it runs three times
+    for i in range(5): #runs 5 times so that one value is not way crazy
+        trigger.low()
+        utime.sleep_us(2)
+        trigger.high()
+        utime.sleep_us(5) 
+        trigger.low()
+        
+        signaloff = 0  # Initialize
+        signalon = 0   # Initialize
+        while echo.value() == 0:
+            signaloff = utime.ticks_us()
+        
+        while echo.value() == 1:
+            signalon = utime.ticks_us()
+        
+        timepassed = signalon - signaloff
+        distance = (timepassed * 0.0343) / 2
+        avgDist.append(distance)
+        utime.sleep_us(10)
+        
+    avgDist.remove(max(avgDist)) #removes highest and lowest
+    avgDist.remove(min(avgDist)) #removes highest and lowest
+    return (sum(avgDist) / len(avgDist)) #returns an average of the remaining three
+
+"""    
 while True:
-    measure_distance()
-    print(yay)
-    
-    
-    
-    us = readUltrasonics()
-    print("us1: ", us[0], " -- us2: ", us[1], " -- us3: ", us[2])
+    print(ultra(trigger_right,echo_right))
+    #print("us1: ", us[0], " -- us2: ", us[1], " -- us3: ", us[2])
     sleep(0.5)
+"""
 
 light_strip_1 = np(Pin(5), 8)
 light_strip_2 = np(Pin(28), 8)
@@ -169,17 +182,23 @@ color2 = (0, 15, 150)
 color_swap = False
 
 start_button = Pin(22, Pin.IN)
-    
+
+
 
 while True:
     print("Waiting for start button...")
     while start_button.value() == 0:
-        sleep(0.05)
+        time.sleep(0.05)
         print(start_button.value())
     print("Button pressed. Starting robot!")
-
-    drive_straight()
-    sleep(3.85)
+    
+    startTime = utime.time()
+    
+    while utime.time() - startTime < 10:
+        """THIS IS THE NUMBER (10) THAT CONTROLS THE AMOUNT OF TIME IT RUNS"""  
+        midStay(ultra(trigger_right, echo_right))
+        utime.sleep_us(50000)
+    
     stop()
 
 while True: #color LED Control
