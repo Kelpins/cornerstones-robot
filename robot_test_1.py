@@ -5,27 +5,28 @@ from neopixel import NeoPixel as np
 """
 Wiring Notes
 
-UsSR Echo: GP14/19
-UsSR Trig: GP13/17
+UsSR Echo: GP3
+UsSR Trig: GP2
 
-UsSL Echo: GP17/22
-UsSL Trig: GP16/21
+UsSL Echo: GP27
+UsSL Trig: GP26
 
-UsSF Echo: Yellow \ GP11/15
-UsSF Trig: Orange \ GP10/14
+UsSF Echo: GP1
+UsSF Trig: GP0
 
+change motor pins pls
 
 """
 
 # Motor A pins
-ENA = PWM(Pin(2))
-IN1 = Pin(3, Pin.OUT)
-IN2 = Pin(4, Pin.OUT)
+ENA = PWM(Pin(16))
+IN1 = Pin(17, Pin.OUT)
+IN2 = Pin(18, Pin.OUT)
 
 # Motor B pins
-IN3 = Pin(5, Pin.OUT)
-IN4 = Pin(6, Pin.OUT)
-ENB = PWM(Pin(7))
+IN3 = Pin(19, Pin.OUT)
+IN4 = Pin(20, Pin.OUT)
+ENB = PWM(Pin(21))
 
 ENA.freq(1000)
 ENB.freq(1000)
@@ -71,14 +72,14 @@ def stayMiddle(USL, USR): #function to keep the robot between two walls, inputs 
         if USR-USL > 0: #checks that the difference is greatish
             return(1, (1-(USR-USL))) #returns a lower power level for right
 
-light_strip_1 = np(Pin(0), 8)
-light_strip_2 = np(Pin(15), 8)
+light_strip_1 = np(Pin(5), 8)
+light_strip_2 = np(Pin(28), 8)
 
 color1 = (255, 0, 0)
 color2 = (0, 15, 150)
 color_swap = False
 
-start_button = Pin(27, Pin.IN)
+start_button = Pin(22, Pin.IN)
 while True:
     print("Waiting for start button...")
     while start_button.value() == 0:
