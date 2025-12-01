@@ -7,31 +7,31 @@ import utime
 ### MOTOR PIN ASSIGNMENTS ###
 
 # Motor A pins
-ENA = PWM(Pin(21))
+ENA = PWM(Pin(16))
 ENA.freq(1000)
-IN1 = Pin(20, Pin.OUT)
-IN2 = Pin(19, Pin.OUT)
+IN1 = Pin(17, Pin.OUT)
+IN2 = Pin(18, Pin.OUT)
 
 # Motor B pins
-IN3 = Pin(18, Pin.OUT)
-IN4 = Pin(17, Pin.OUT)
-ENB = PWM(Pin(16))
+IN3 = Pin(19, Pin.OUT)
+IN4 = Pin(20, Pin.OUT)
+ENB = PWM(Pin(21))
 ENB.freq(1000)
 
 
 ### ULTRASONIC PIN ASSIGNMENTS ###
 
-trigger_center = Pin(0, Pin.OUT)
-echo_center = Pin(1, Pin.IN)
+trigger_center = Pin(10, Pin.OUT)
+echo_center = Pin(11, Pin.IN)
 
-trigger_right = Pin(2, Pin.OUT)
-echo_right = Pin(3, Pin.IN)
+trigger_left = Pin(15, Pin.OUT)
+echo_left = Pin(14, Pin.IN)
 
 
 ### LED STRIP PIN & COLOR ASSIGNMENTS ###
 
-light_strip_1 = np(Pin(5), 8)
-light_strip_2 = np(Pin(28), 8)
+light_strip_1 = np(Pin(12), 8)
+light_strip_2 = np(Pin(1), 8)
 
 color1 = (255, 0, 0)
 color2 = (0, 15, 150)
@@ -40,7 +40,7 @@ color_swap = False
 
 ### START BUTTON PIN ASSIGNMENT ###
 
-start_button = Pin(26, Pin.IN, Pin.PULL_UP)
+start_button = Pin(13, Pin.IN, Pin.PULL_UP)
 
 
 
@@ -159,14 +159,14 @@ def run_program():
 
     startTime = utime.time()
     print("cp0")
-    start_dist = ultra(trigger_right, echo_right)
+    start_dist = ultra(trigger_left, echo_left)
     print("cp0.5")
 
     time.sleep(0.1)
 
     while True:#utime.time() - startTime < 100:
         
-        us = ultra(trigger_right, echo_right)
+        us = ultra(trigger_left, echo_left)
         
         midStay(us, start_dist)
 
