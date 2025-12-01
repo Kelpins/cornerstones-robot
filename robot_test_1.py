@@ -7,15 +7,15 @@ import utime
 ### MOTOR PIN ASSIGNMENTS ###
 
 # Motor A pins
-ENA = PWM(Pin(16))
+ENA = PWM(Pin(21))
 ENA.freq(1000)
-IN1 = Pin(17, Pin.OUT)
-IN2 = Pin(18, Pin.OUT)
+IN1 = Pin(20, Pin.OUT)
+IN2 = Pin(19, Pin.OUT)
 
 # Motor B pins
-IN3 = Pin(19, Pin.OUT)
-IN4 = Pin(20, Pin.OUT)
-ENB = PWM(Pin(21))
+IN3 = Pin(18, Pin.OUT)
+IN4 = Pin(17, Pin.OUT)
+ENB = PWM(Pin(16))
 ENB.freq(1000)
 
 
@@ -51,11 +51,11 @@ start_button = Pin(13, Pin.IN, Pin.PULL_UP)
 def drive(modL,modR):
     IN3.high()#Left Motor
     IN4.low()
-    ENB.duty_u16(int(modL * 1.0 * 65535 / 1.5))
+    ENB.duty_u16(int(modL * 1.0 * 65535 / 1.625))
     
     IN1.high()#Right Motor
     IN2.low()
-    ENA.duty_u16(int(modR * 0.975 * 65535 / 1.5))
+    ENA.duty_u16(int(modR * 0.95 * 65535 / 1.625))
 
 # Stop both motors
 def stop_motors():
@@ -64,10 +64,10 @@ def stop_motors():
 
 # Keep robot at a set distance from a wall on the right side   
 def midStay(USS_side, start_dist): #takes in the distance from the wall in cm
-    """ built for if the side sensor is on the right side of the robot"""
+    """ built for if the side sensor is on the left side of the robot"""
     
-    # if pos, then drifting left (away from wall)
-    # if neg then drifting right (toward wall)
+    # if pos, then drifting right (away from wall)
+    # if neg then drifting left (toward wall)
     dist_from_orig = USS_side - start_dist
     print("dist_from_orig: ", dist_from_orig)
     
@@ -76,8 +76,8 @@ def midStay(USS_side, start_dist): #takes in the distance from the wall in cm
         drive(1, 1)
         
     elif dist_from_orig > 1.25: #drifting right
-        rel_left_pow = (1 / (dist_from_orig - 11.25 - 5/6)) + 0.575
-        rel_right_pow = 1 - rel_left_pow
+        rel_right_pow = (1 / (-0.25 * (dist_from_orig) - 12.1875 - (5.0/6.0))) + 0.575
+        rel_left_pow = 1 - rel_right_pow
         
         abs_right_pow = rel_right_pow / max(rel_right_pow, rel_left_pow)
         abs_left_pow = rel_left_pow / max(rel_right_pow, rel_left_pow)
@@ -87,8 +87,8 @@ def midStay(USS_side, start_dist): #takes in the distance from the wall in cm
         drive(abs_left_pow, abs_right_pow)
         
     elif dist_from_orig < -1.25: #drifting left
-        rel_right_pow = (1 / -(dist_from_orig + 11.25 + 5/6)) + 0.575
-        rel_left_pow = 1 - rel_right_pow
+        rel_left_pow = (1 / (0.25 * (dist_from_orig) - 12.1875 - (5.0/6.0))) + 0.575
+        rel_right_pow = 1 - rel_left_pow
         
         abs_right_pow = rel_right_pow / max(rel_right_pow, rel_left_pow)
         abs_left_pow = rel_left_pow / max(rel_right_pow, rel_left_pow)
@@ -110,11 +110,11 @@ def ultra(trigger, echo): #inputs are the GPIO pins
         
     avgDist = [] #avg list to hold values so that it runs three times
     print("cp0-1")
-    for i in range(5): #runs 5 times so that one value is not way crazy
+    for i in range(7): #runs 5 times so that one value is not way crazy
         trigger.low()
-        utime.sleep_us(2)
+        utime.sleep_us(1)
         trigger.high()
-        utime.sleep_us(5) 
+        utime.sleep_us(4) 
         trigger.low()
         
         print("cp0-1-1")
@@ -132,10 +132,12 @@ def ultra(trigger, echo): #inputs are the GPIO pins
         timepassed = signalon - signaloff
         distance = (timepassed * 0.0343) / 2
         avgDist.append(distance)
-        time.sleep(0.1)
+        time.sleep(0.125)
     print("cp0-2")
         
     avgDist.remove(max(avgDist)) #removes highest and lowest
+    avgDist.remove(max(avgDist)) #removes highest and lowest
+    avgDist.remove(min(avgDist)) #removes highest and lowest
     avgDist.remove(min(avgDist)) #removes highest and lowest
     return (sum(avgDist) / len(avgDist)) #returns an average of the remaining three
 
