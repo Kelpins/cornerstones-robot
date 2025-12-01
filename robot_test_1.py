@@ -75,9 +75,9 @@ def midStay(USS_side, start_dist): #takes in the distance from the wall in cm
         print("staying center")
         drive(1, 1)
         
-    elif dist_from_orig < -1.25: #drifting right
-        rel_right_pow = (1 / (dist_from_orig - 11.25 - 5/6)) + 0.575
-        rel_left_pow = 1 - rel_right_pow
+    elif dist_from_orig > 1.25: #drifting right
+        rel_left_pow = (1 / (dist_from_orig - 11.25 - 5/6)) + 0.575
+        rel_right_pow = 1 - rel_left_pow
         
         abs_right_pow = rel_right_pow / max(rel_right_pow, rel_left_pow)
         abs_left_pow = rel_left_pow / max(rel_right_pow, rel_left_pow)
@@ -86,9 +86,9 @@ def midStay(USS_side, start_dist): #takes in the distance from the wall in cm
         print("abs left pow: ", abs_left_pow, " -- abs right pow: ", abs_right_pow)
         drive(abs_left_pow, abs_right_pow)
         
-    elif dist_from_orig > 1.25: #drifting left
-        rel_left_pow = (1 / -(dist_from_orig + 11.25 + 5/6)) + 0.575
-        rel_right_pow = 1 - rel_left_pow
+    elif dist_from_orig < -1.25: #drifting left
+        rel_right_pow = (1 / -(dist_from_orig + 11.25 + 5/6)) + 0.575
+        rel_left_pow = 1 - rel_right_pow
         
         abs_right_pow = rel_right_pow / max(rel_right_pow, rel_left_pow)
         abs_left_pow = rel_left_pow / max(rel_right_pow, rel_left_pow)
