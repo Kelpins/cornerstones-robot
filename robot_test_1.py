@@ -3,11 +3,16 @@ import time
 from neopixel import NeoPixel as np
 import utime
 
+
+
 ### LIMITS FOR THE DRIVE ALGORITHM ###
 sideLimit = 30 #25 cm from side wall
 frontLimit = 20 #7cm from front wall
 goStraightTime = 0.5 #goes forward for 1/2 second after turning
-TurnTime = 1 #robot turns for 1/2 second
+turnTime = 1 #robot turns for 1/2 second
+restTime = 0.2 #each time the thing runs it drives for 0.2 seconds before correcting
+centerMargin = 2.5 #number of centimeters allowed for no changes
+runtime = 25 #number of seconds the program runs for
 
 ### CP LIGHTS ###
 
@@ -37,6 +42,8 @@ echo_center = Pin(11, Pin.IN)
 trigger_left = Pin(15, Pin.OUT)
 echo_left = Pin(14, Pin.IN)
 
+trigger_right = Pin(6,Pin.OUT)
+echo_right = Pin(7,Pin.IN)
 
 ### LED STRIP PIN & COLOR ASSIGNMENTS ###
 
@@ -59,23 +66,13 @@ start_button = Pin(13, Pin.IN, Pin.PULL_UP)
 # Spin left and right motors at a speed percentage
 # modL and modR (0 <= x <= 1)
 def drive(modL,modR):
-    if(modL >= 0): #positive
-        IN3.high()#Left Motor
-        IN4.low()
-        ENB.duty_u16(int(modL * 1.0 * 65535 / 1.75))
-    elif(modL <= 0): #negative
-        IN3.low()#Left Motor
-        IN4.high()
-        ENB.duty_u16(int(-modL * 1.0 * 65535 / 1.75))
-
-    if(modR > 0): #positive        
-        IN1.high()#Right Motor
-        IN2.low()
-        ENA.duty_u16(int(modR * 0.95 * 65535 / 1.625))
-    elif(modR < 0): #negative
-        IN1.low()#right Motor
-        IN2.high()
-        ENA.duty_u16(int(-modR * 0.95 * 65535 / 1.625))
+    IN3.high()#Left Motor
+    IN4.low()
+    ENB.duty_u16(int(modL * 1.0 * 65535 / 2.25))
+    
+    IN1.high()#Right Motor
+    IN2.low()
+    ENA.duty_u16(int(modR * 0.887 * 65535 / 2.25))
 
 # Stop both motors
 def stop_motors():
@@ -83,69 +80,97 @@ def stop_motors():
     ENB.duty_u16(0)
 
 # Keep robot at a set distance from a wall on the right side   
-def midStay(USS_side, start_dist): #takes in the distance from the wall in cm
-    """ built for if the side sensor is on the left side of the robot"""
-    
-    # if pos, then drifting right (away from wall)
-    # if neg then drifting left (toward wall)
-    dist_from_orig = USS_side - start_dist
-    #print("dist_from_orig: ", dist_from_orig)
-    
-    if dist_from_orig >= -1.25 and dist_from_orig <= 1.25:
-        #print("staying center")
-        drive(1, 1)
-        CPLED1.on()
-        CPLED2.on()
-
-    elif dist_from_orig <= -30 or dist_from_orig >= 30:
-        #print("staying center")
-        drive(1,1)
-        CPLED1.on()
-        CPLED2.on()
-        
-    elif dist_from_orig > 1.25: #drifting right
-        rel_right_pow = (-0.25 * (dist_from_orig) - 12.1875 - (5.0/6.0)) + 0.575
-        rel_left_pow = 1 - rel_right_pow
-        
-        abs_right_pow = rel_right_pow / max(rel_right_pow, rel_left_pow)
-        abs_left_pow = rel_left_pow / max(rel_right_pow, rel_left_pow)
-        
-        #print("drifting right -- correcting")
-        #print("abs left pow: ", abs_left_pow, " -- abs right pow: ", abs_right_pow)
-        drive(abs_left_pow, abs_right_pow)
+def midStay(USLeft, USRight): #takes in the distance from the wall in cm
+    rPower = 0 #initialize R power
+    lPower = 0 #init L Power
+    if(USLeft>USRight): #If the left side is further from the wall then the right
+        if(USLeft-USRight > centerMargin): #And if the distance is further from one another then the center margin we give it
+            CPLED1.on()
+            CPLED2.on()
+            drive(1,1) #continues to drive straight
+            time.sleep(restTime) #sleeps for the rest time to allow it to run
+            stop_motors() #stop motors
+            return #break from the loop, return the function which called it
+        if(USRight>sideLimit): #And if the right side isn't really far (bc then the left side would be too which would mean no walls
+            CPLED1.off()
+            CPLED2.off()
+            stop_motors() #in which case we stop motors
+            return
+        rPower = 1 #if it is only true that the left is further from the wall and it's outside the limit, it must turn left
+        lPower = USRight/USLeft #left power is set to a value based on the difference between the two distances
         CPLED1.on()
         CPLED2.off()
-        
-    elif dist_from_orig < -1.25: #drifting left
-        rel_left_pow = (0.25 * (dist_from_orig) - 12.1875 - (5.0/6.0)) + 0.575
-        rel_right_pow = 1 - rel_left_pow
-        
-        abs_right_pow = rel_right_pow / max(rel_right_pow, rel_left_pow)
-        abs_left_pow = rel_left_pow / max(rel_right_pow, rel_left_pow)
-        
-        #print("drifting left -- correcting")
-        #print("abs right pow: ", abs_right_pow, " -- abs left pow: ", abs_left_pow)
-        drive(abs_left_pow, abs_right_pow)
-        CPLED2.on()
+        drive(lPower, rPower) #calls the drive function
+        time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
+        stop_motors() 
+        return
+    #repeats for the right > left
+    elif(USRight>USLeft): #If the right side is further from the wall then the left
+        if(USRight-USLeft > centerMargin): #And if the distance is further from one another then the center margin we give it
+            CPLED1.on()
+            CPLED2.on()
+            drive(1,1) #continues to drive straight
+            time.sleep(restTime) #sleeps for the rest time to allow it to run
+            stop_motors() #stop motors
+            return #break from the loop, return the function which called it
+        if(USLeft>sideLimit): #And if the left side isn't really far (bc then the right side would be too which would mean no walls
+            CPLED1.off()
+            CPLED2.off()
+            stop_motors() #in which case we stop motors
+            return
+        lPower = 1 #if it is only true that the left is further from the wall and it's outside the limit, it must turn right to correct
+        rPower = USLeft/USRight #right power is set to a value based on the difference between the two distances
         CPLED1.off()
+        CPLED2.on()
+        drive(lPower, rPower) #calls the drive function
+        time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
+        stop_motors()
+        return
+    else: #sides are equal
+        CPLED1.on()
+        CPLED2.on()
+        drive(1,1) #continues to drive straight
+        time.sleep(restTime) #sleeps for the rest time to allow it to run
+        stop_motors() #stop motors
+        return #break from the loop, return the function which called it   
+
+def Turn(direction): #true is right turn, false is left turn
+    if direction: #right turn
+        CPLED1.off()
+        CPLED2.off()
+        drive(1,-1) #right goes to -1, left goes to 1, turns right
+        time.sleep(turnTime) #waits during turn time
+        stop_motors()
+        return
+    else: #left turn
+        CPLED1.off()
+        CPLED2.off()
+        drive(-1,1) #left turn
+        time.sleep(turnTime)
+        stop_motors()
+        return
     
-    else:
-        #print("Error: dist_from_orig not in range")
-        exit()
-
-
-
+def FrontDetect(USFront,USLeft,USRight):
+    if(USFront<frontLimit): #there is something in front of the robot
+        if(USLeft<USRight): #left is shorter than right; right turn
+            if(USRight-USLeft > centerMargin):
+                Turn(True)
+                return
+        elif(USRight>USLeft):
+            if(USRight-USLeft > centerMargin):
+                Turn(False)
+                return
+    return
 ### SENSOR INPUT FUNCTIONS ###
         
-# Read ultrasonic sensor
 def ultra(trigger, echo): #inputs are the GPIO pins
         
     avgDist = [] #avg list to hold values so that it runs three times
-    for i in range(5): #runs 5 times so that one value is not way crazy
+    for i in range(7): #runs 5 times so that one value is not way crazy
         trigger.low()
-        utime.sleep_us(1)
+        utime.sleep_us(2)
         trigger.high()
-        utime.sleep_us(4) 
+        utime.sleep_us(5) 
         trigger.low()
                 
         signaloff = 0  # Initialize
@@ -158,78 +183,45 @@ def ultra(trigger, echo): #inputs are the GPIO pins
                 
         timepassed = signalon - signaloff
         distance = (timepassed * 0.0343) / 2
-        #print(distance)
+        print(distance)
         avgDist.append(distance)
-        time.sleep(0.1)
+        time.sleep(0.05)
         
-    avgDist.remove(max(avgDist)) #removes highest and lowest
-    avgDist.remove(min(avgDist)) #removes highest and lowest
-    return (sum(avgDist) / len(avgDist)) #returns an average of the remaining three
+    avgDist.remove(max(avgDist)) #removes highest
+    avgDist.remove(min(avgDist)) #removes lowest
+    avgDist.remove(max(avgDist)) #removes 2ndhighest
+    return (sum(avgDist) / len(avgDist)) #returns an average of the remaining four
 
-def front_detect():  #checks for if the distance is closer than x cm
-    ##print("Running Front Detect")
-    if(ultra(trigger_center, echo_center)<frontLimit): #FRONT IS THE VERY IMPORTANT DISTANCE FROM FRONT WALL
-        CPLED1.off()
-        CPLED2.off()
-        return True
-    return False
-
-    
-def left_detect(): #checks for if the distance is closer than x cm on the left
-    ##print("Running Left Detect")
-    if(ultra(trigger_left, echo_left)>sideLimit): #SIDE LIMIT IS THE VERY IMPORTANT DISTANCE FROM SIDE WALL
-        return False
-    return True
 
 ### MAIN PROGRAM ###
 
-"""Maze Runner"""
-def Run_Maze(): 
+
+def run_program():
+    
     color_swap = False
+    
     time.sleep(2)
 
-    #print("Waiting for start button...")
+    print("Waiting for start button...")
     while start_button.value() == 1:
         time.sleep(0.05)
-    #print("Button pressed. Starting robot!")
+    print("Button pressed. Starting robot!")
     
     time.sleep(0.5)
 
     startTime = utime.time()
-    #print("Finding Start Distance")
-    start_dist = ultra(trigger_left, echo_left)
 
     time.sleep(0.1)
 
-    while True:
-        if front_detect():#wall in front of bot (closer than 5cm)
-            #print("front sensed")
-            #check if left is seen. If it isn't, it turns left. If it is, it must turn right. 
-            #after the turns left it must drive straight until it refinds a wall.
-            
-            if left_detect(): #wall is detected by the left side, must turn right
-                #print("turning right")
-                drive(1,-1)
-                time.sleep(TurnTime)
-                stop_motors()
-                #print("start distance after right turn")
-                start_dist = ultra(trigger_left, echo_left)
-                time.sleep(0.1)
+    while (utime.time()-startTime < runtime):
 
-            else: #turn left
-                #print("Turning Left")
-                drive(-1,1)
-                time.sleep(TurnTime)
-                drive(1,1)
-                time.sleep(goStraightTime)
-                stop_motors()
-                #print("start distance after left turn")
-                start_dist = ultra(trigger_left, echo_left)
-        else:
-            #print("standard side reading after no front detection")
-            us = ultra(trigger_left, echo_left)
-            midStay(us, start_dist)
-
+        UR = ultra(trigger_right, echo_right) 
+        UL = ultra(trigger_left, echo_left)
+        UC = ultra(trigger_center, echo_center)
+        
+        FrontDetect(UC, UL, UR)
+        midStay(UL,UR)
+        
         for i in range(8): #8 Light locations to light
             if not color_swap: #sets the color for each location controlled by color_swap = not color_swap
                 light_strip_1[i] = color1 #colors in 1 are color 1
@@ -245,16 +237,13 @@ def Run_Maze():
         
         if start_button.value() != 1:
             stop_motors()
-            Run_Maze()
+            run_program()
             break
         
         time.sleep(0.1)
+        print(utime.time() - startTime)
 
-        
-stop_motors()
-
-Run_Maze()
+run_program()
 
 # stops the robot driving
 stop_motors()
-
