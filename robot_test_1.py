@@ -4,10 +4,10 @@ from neopixel import NeoPixel as np
 import utime
 
 ### LIMITS FOR THE DRIVE ALGORITHM ###
-sideLimit = 25 #25 cm from side wall
-frontLimit = 7 #7cm from front wall
+sideLimit = 30 #25 cm from side wall
+frontLimit = 20 #7cm from front wall
 goStraightTime = 0.5 #goes forward for 1/2 second after turning
-TurnTime = 0.5 #robot turns for 1/2 second
+TurnTime = 1 #robot turns for 1/2 second
 
 ### MOTOR PIN ASSIGNMENTS ###
 
@@ -128,16 +128,13 @@ def midStay(USS_side, start_dist): #takes in the distance from the wall in cm
 def ultra(trigger, echo): #inputs are the GPIO pins
         
     avgDist = [] #avg list to hold values so that it runs three times
-    print("cp0-1")
-    for i in range(7): #runs 5 times so that one value is not way crazy
+    for i in range(5): #runs 5 times so that one value is not way crazy
         trigger.low()
         utime.sleep_us(1)
         trigger.high()
         utime.sleep_us(4) 
         trigger.low()
-        
-        print("cp0-1-1")
-        
+                
         signaloff = 0  # Initialize
         signalon = 0   # Initialize
         while echo.value() == 0:
@@ -145,63 +142,28 @@ def ultra(trigger, echo): #inputs are the GPIO pins
         
         while echo.value() == 1:
             signalon = utime.ticks_us()
-        
-        print("cp0-1-2")
-        
+                
         timepassed = signalon - signaloff
         distance = (timepassed * 0.0343) / 2
         avgDist.append(distance)
-        time.sleep(0.125)
-    print("cp0-2")
+        time.sleep(0.1)
         
     avgDist.remove(max(avgDist)) #removes highest and lowest
-    avgDist.remove(max(avgDist)) #removes highest and lowest
-    avgDist.remove(min(avgDist)) #removes highest and lowest
     avgDist.remove(min(avgDist)) #removes highest and lowest
     return (sum(avgDist) / len(avgDist)) #returns an average of the remaining three
 
-def front_detect():  #checks for if the distance is closer than xcm
+def front_detect():  #checks for if the distance is closer than x cm
     if(ultra(trigger_center, echo_center)<frontLimit): #FRONT IS THE VERY IMPORTANT DISTANCE FROM FRONT WALL
         return True
     return False
 
     
-def left_detect(): #checks for if the distance is closer tahn 100 cm on the left
+def left_detect(): #checks for if the distance is closer than x cm on the left
     if(ultra(trigger_left, echo_left)>sideLimit): #SIDE LIMIT IS THE VERY IMPORTANT DISTANCE FROM SIDE WALL
         return False
     return True
 
 ### MAIN PROGRAM ###
-
-stop_motors()
-
-def goStraight():
-
-    while True:#utime.time() - startTime < 100:
-        
-        us = ultra(trigger_left, echo_left)
-        
-        midStay(us, start_dist)
-
-        for i in range(8): #8 Light locations to light
-            if not color_swap: #sets the color for each location controlled by color_swap = not color_swap
-                light_strip_1[i] = color1 #colors in 1 are color 1
-                light_strip_2[i] = color2 #colors in 2 are color 2
-            else:
-                light_strip_1[i] = color2 #colors swap so 1 is 2
-                light_strip_2[i] = color1 #and 2 is 1
-            color_swap = not color_swap #boolean gets flipped to alternate colors
-        
-        color_swap = not color_swap #displaced by one so that it shifts over to loop
-        light_strip_1.write()
-        light_strip_2.write()
-        
-        if start_button.value() != 1:
-            stop_motors()
-            run_program()
-            break
-        
-        time.sleep(0.1)
 
 """Maze Runner"""
 def Run_Maze(): 
@@ -216,9 +178,7 @@ def Run_Maze():
     time.sleep(0.5)
 
     startTime = utime.time()
-    print("cp0")
     start_dist = ultra(trigger_left, echo_left)
-    print("cp0.5")
 
     time.sleep(0.1)
 
@@ -260,13 +220,13 @@ def Run_Maze():
         
         if start_button.value() != 1:
             stop_motors()
-            run_program()
+            Run_Maze()
             break
         
         time.sleep(0.1)
 
         
-    
+stop_motors()
 
 Run_Maze()
 
