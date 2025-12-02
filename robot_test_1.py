@@ -62,11 +62,11 @@ def drive(modL,modR):
     if(modL >= 0): #positive
         IN3.high()#Left Motor
         IN4.low()
-        ENB.duty_u16(int(modL * 1.0 * 65535 / 1.625))
+        ENB.duty_u16(int(modL * 1.0 * 65535 / 1.75))
     elif(modL <= 0): #negative
         IN3.low()#Left Motor
         IN4.high()
-        ENB.duty_u16(int(-modL * 1.0 * 65535 / 1.625))
+        ENB.duty_u16(int(-modL * 1.0 * 65535 / 1.75))
 
     if(modR > 0): #positive        
         IN1.high()#Right Motor
@@ -93,19 +93,19 @@ def midStay(USS_side, start_dist): #takes in the distance from the wall in cm
     
     if dist_from_orig >= -1.25 and dist_from_orig <= 1.25:
         #print("staying center")
-        drive(.5, .5)
+        drive(1, 1)
         CPLED1.on()
         CPLED2.on()
 
     elif dist_from_orig <= -30 or dist_from_orig >= 30:
         #print("staying center")
-        drive(.5,.5)
+        drive(1,1)
         CPLED1.on()
         CPLED2.on()
         
     elif dist_from_orig > 1.25: #drifting right
-        rel_right_pow = (.5 / (-0.25 * (dist_from_orig) - 12.1875 - (5.0/6.0))) + 0.575
-        rel_left_pow = .5 - rel_right_pow
+        rel_right_pow = (-0.25 * (dist_from_orig) - 12.1875 - (5.0/6.0)) + 0.575
+        rel_left_pow = 1 - rel_right_pow
         
         abs_right_pow = rel_right_pow / max(rel_right_pow, rel_left_pow)
         abs_left_pow = rel_left_pow / max(rel_right_pow, rel_left_pow)
@@ -117,8 +117,8 @@ def midStay(USS_side, start_dist): #takes in the distance from the wall in cm
         CPLED2.off()
         
     elif dist_from_orig < -1.25: #drifting left
-        rel_left_pow = (0.5 / (0.25 * (dist_from_orig) - 12.1875 - (5.0/6.0))) + 0.575
-        rel_right_pow = 0.5 - rel_left_pow
+        rel_left_pow = (0.25 * (dist_from_orig) - 12.1875 - (5.0/6.0)) + 0.575
+        rel_right_pow = 1 - rel_left_pow
         
         abs_right_pow = rel_right_pow / max(rel_right_pow, rel_left_pow)
         abs_left_pow = rel_left_pow / max(rel_right_pow, rel_left_pow)
@@ -209,7 +209,7 @@ def Run_Maze():
             
             if left_detect(): #wall is detected by the left side, must turn right
                 #print("turning right")
-                drive(5,-.5)
+                drive(1,-1)
                 time.sleep(TurnTime)
                 stop_motors()
                 #print("start distance after right turn")
