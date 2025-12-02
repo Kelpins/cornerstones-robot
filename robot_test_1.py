@@ -54,11 +54,11 @@ start_button = Pin(13, Pin.IN, Pin.PULL_UP)
 # Spin left and right motors at a speed percentage
 # modL and modR (0 <= x <= 1)
 def drive(modL,modR):
-    if(modL >0): #positive
+    if(modL >= 0): #positive
         IN3.high()#Left Motor
         IN4.low()
         ENB.duty_u16(int(modL * 1.0 * 65535 / 1.625))
-    elif(modL < 0): #negative
+    elif(modL <= 0): #negative
         IN3.low()#Left Motor
         IN4.high()
         ENB.duty_u16(int(-modL * 1.0 * 65535 / 1.625))
@@ -230,13 +230,42 @@ def Run_Maze():
             if left_detect(): #wall is detected by the left side, must turn right
                 drive(1,-1)
                 time.sleep(TurnTime)
+                stop_motors()
+                start_dist = ultra(trigger_left, echo_left)
+                time.sleep(0.1)
 
             else: #turn left
                 drive(-1,1)
                 time.sleep(TurnTime)
                 drive(1,1)
                 time.sleep(goStraightTime)
-        goStraight()
+                stop_motors()
+                start_dist = ultra(trigger_left, echo_left)
+        else:
+            us = ultra(trigger_left, echo_left)
+            midStay(us, start_dist)
+
+        for i in range(8): #8 Light locations to light
+            if not color_swap: #sets the color for each location controlled by color_swap = not color_swap
+                light_strip_1[i] = color1 #colors in 1 are color 1
+                light_strip_2[i] = color2 #colors in 2 are color 2
+            else:
+                light_strip_1[i] = color2 #colors swap so 1 is 2
+                light_strip_2[i] = color1 #and 2 is 1
+            color_swap = not color_swap #boolean gets flipped to alternate colors
+        
+        color_swap = not color_swap #displaced by one so that it shifts over to loop
+        light_strip_1.write()
+        light_strip_2.write()
+        
+        if start_button.value() != 1:
+            stop_motors()
+            run_program()
+            break
+        
+        time.sleep(0.1)
+
+        
     
 
 Run_Maze()
