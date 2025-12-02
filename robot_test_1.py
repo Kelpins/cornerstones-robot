@@ -218,9 +218,9 @@ def Run_Maze():
 
             else: #turn left
                 #print("Turning Left")
-                drive(-.5,.5)
+                drive(-1,1)
                 time.sleep(TurnTime)
-                drive(.5,.5)
+                drive(1,1)
                 time.sleep(goStraightTime)
                 stop_motors()
                 #print("start distance after left turn")
