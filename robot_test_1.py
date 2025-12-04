@@ -87,7 +87,7 @@ def stop_motors():
 def midStay(USLeft, USRight): #takes in the distance from the wall in cm
     rPower = 0 #initialize R power
     lPower = 0 #init L Power
-    if(!holdNeeded): #toggle not selected
+    if (not holdNeeded): #toggle not selected
         if(USLeft>USRight): #If the left side is further from the wall then the right
             if(USLeft-USRight > centerMargin): #And if the distance is further from one another then the center margin we give it
                 CPLED1.on()
@@ -270,16 +270,15 @@ def run_program():
         UL = ultra(trigger_left, echo_left)
         UC = ultra(trigger_center, echo_center)
         
-        if (FrontDetect(UC, UL, UR)): #So that front detect running means that midStay doesn't run, most of the time this will not trigger
-        else:#the most of the time it doesn't trigger
+        if (not FrontDetect(UC, UL, UR)): #So that front detect running means that midStay doesn't run, most of the time this will not trigger
             if(UL > sideLimit and UR < sideLimit):#left side is really long and the other side isn't but front detect hasn't triggered
-                if(!holdNeeded): #if it's currently holding it won't override
+                if(not holdNeeded): #if it's currently holding it won't override
                     holdDistance = UR #value to hold the distance of right side which is reliably in middle
                     holdNeeded = True #toggle activated
                     holdSide = True #side that's holding is the right side
                 midStay(UL,UR) #calls midStay
             elif(UR > sideLimit and UR < sideLimit): #same for right side
-                if(!holdNeeded): #same as above
+                if(not holdNeeded): #same as above
                     holdDistance = UL #UL is reliable
                     holdNeeded = True #toggle selected
                     holdSide = False #right side
