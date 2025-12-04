@@ -70,13 +70,24 @@ start_button = Pin(13, Pin.IN, Pin.PULL_UP)
 # Spin left and right motors at a speed percentage
 # modL and modR (0 <= x <= 1)
 def drive(modL,modR):
-    IN3.high()#Left Motor
-    IN4.low()
-    ENB.duty_u16(int(modL * 1.0 * 65535 / 2.25))
     
-    IN1.high()#Right Motor
-    IN2.low()
-    ENA.duty_u16(int(modR * 0.887 * 65535 / 2.25))
+    if (modL < 0):
+        IN3.low()
+        IN4.high()
+        ENB.duty_u16(int(-modL * 1.0 * 65535 / 2.0))
+    else:
+        IN3.high()#Left Motor
+        IN4.low()
+        ENB.duty_u16(int(modL * 1.0 * 65535 / 2.0))
+    
+    if (modR < 0):
+        IN1.low()
+        IN2.high()
+        ENA.duty_u16(int(-modR * 0.887 * 65535 / 2.0))
+    else:
+        IN1.high()#Right Motor
+        IN2.low()
+        ENA.duty_u16(int(modR * 0.887 * 65535 / 2.0))
 
 # Stop both motors
 def stop_motors():
