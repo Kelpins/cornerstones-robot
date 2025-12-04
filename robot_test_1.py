@@ -13,6 +13,10 @@ turnTime = 1 #robot turns for 1/2 second
 restTime = 0.2 #each time the thing runs it drives for 0.2 seconds before correcting
 centerMargin = 2.5 #number of centimeters allowed for no changes
 runtime = 25 #number of seconds the program runs for
+holdNeeded = False #universal trigger
+holdDistance = 0 #the distance being held
+holdSide = False #true is right | false is left
+
 
 ### CP LIGHTS ###
 
@@ -83,56 +87,103 @@ def stop_motors():
 def midStay(USLeft, USRight): #takes in the distance from the wall in cm
     rPower = 0 #initialize R power
     lPower = 0 #init L Power
-    if(USLeft>USRight): #If the left side is further from the wall then the right
-        if(USLeft-USRight > centerMargin): #And if the distance is further from one another then the center margin we give it
+    if(!holdNeeded): #toggle not selected
+        if(USLeft>USRight): #If the left side is further from the wall then the right
+            if(USLeft-USRight > centerMargin): #And if the distance is further from one another then the center margin we give it
+                CPLED1.on()
+                CPLED2.on()
+                drive(1,1) #continues to drive straight
+                time.sleep(restTime) #sleeps for the rest time to allow it to run
+                stop_motors() #stop motors
+                return #break from the loop, return the function which called it
+            if(USRight>sideLimit): #And if the right side isn't really far (bc then the left side would be too which would mean no walls
+                CPLED1.off()
+                CPLED2.off()
+                stop_motors() #in which case we stop motors
+                return
+            rPower = 1 #if it is only true that the left is further from the wall and it's outside the limit, it must turn left
+            lPower = USRight/USLeft #left power is set to a value based on the difference between the two distances
+            CPLED1.on()
+            CPLED2.off()
+            drive(lPower, rPower) #calls the drive function
+            time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
+            stop_motors() 
+            return
+        #repeats for the right > left
+        elif(USRight>USLeft): #If the right side is further from the wall then the left
+            if(USRight-USLeft > centerMargin): #And if the distance is further from one another then the center margin we give it
+                CPLED1.on()
+                CPLED2.on()
+                drive(1,1) #continues to drive straight
+                time.sleep(restTime) #sleeps for the rest time to allow it to run
+                stop_motors() #stop motors
+                return #break from the loop, return the function which called it
+            if(USLeft>sideLimit): #And if the left side isn't really far (bc then the right side would be too which would mean no walls
+                CPLED1.off()
+                CPLED2.off()
+                stop_motors() #in which case we stop motors
+                return
+            lPower = 1 #if it is only true that the left is further from the wall and it's outside the limit, it must turn right to correct
+            rPower = USLeft/USRight #right power is set to a value based on the difference between the two distances
+            CPLED1.off()
+            CPLED2.on()
+            drive(lPower, rPower) #calls the drive function
+            time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
+            stop_motors()
+            return
+        else: #sides are equal
             CPLED1.on()
             CPLED2.on()
             drive(1,1) #continues to drive straight
             time.sleep(restTime) #sleeps for the rest time to allow it to run
             stop_motors() #stop motors
             return #break from the loop, return the function which called it
-        if(USRight>sideLimit): #And if the right side isn't really far (bc then the left side would be too which would mean no walls
-            CPLED1.off()
-            CPLED2.off()
-            stop_motors() #in which case we stop motors
-            return
-        rPower = 1 #if it is only true that the left is further from the wall and it's outside the limit, it must turn left
-        lPower = USRight/USLeft #left power is set to a value based on the difference between the two distances
-        CPLED1.on()
-        CPLED2.off()
-        drive(lPower, rPower) #calls the drive function
-        time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
-        stop_motors() 
-        return
-    #repeats for the right > left
-    elif(USRight>USLeft): #If the right side is further from the wall then the left
-        if(USRight-USLeft > centerMargin): #And if the distance is further from one another then the center margin we give it
-            CPLED1.on()
-            CPLED2.on()
-            drive(1,1) #continues to drive straight
-            time.sleep(restTime) #sleeps for the rest time to allow it to run
-            stop_motors() #stop motors
-            return #break from the loop, return the function which called it
-        if(USLeft>sideLimit): #And if the left side isn't really far (bc then the right side would be too which would mean no walls
-            CPLED1.off()
-            CPLED2.off()
-            stop_motors() #in which case we stop motors
-            return
-        lPower = 1 #if it is only true that the left is further from the wall and it's outside the limit, it must turn right to correct
-        rPower = USLeft/USRight #right power is set to a value based on the difference between the two distances
-        CPLED1.off()
-        CPLED2.on()
-        drive(lPower, rPower) #calls the drive function
-        time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
-        stop_motors()
-        return
-    else: #sides are equal
-        CPLED1.on()
-        CPLED2.on()
-        drive(1,1) #continues to drive straight
-        time.sleep(restTime) #sleeps for the rest time to allow it to run
-        stop_motors() #stop motors
-        return #break from the loop, return the function which called it   
+    else: #non normal because hold toggle is on
+        if(holdSide): #Right side being held
+            if(holdDistance > USRight and (holdDistance - USRight > centerMargin)): #not in center margin zone and needs to correct right
+                rPower = USRight/holdDistance #right power is set to a value based on the difference between the two distances
+                CPLED1.off()
+                CPLED2.on()
+                drive(1, rPower) #calls the drive function
+                time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
+                stop_motors()
+            elif(holdDistance < USRight and (USRight - holdDistance > centerMargin)): #not in center margin zone and needs to correct left
+                rPower = holdDistance/USRight #right power is set to a value based on the difference between the two distances
+                CPLED1.on()
+                CPLED2.off()
+                drive(1, rPower) #calls the drive function
+                time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
+                stop_motors()
+            else: #within center margin zone go straight
+                CPLED1.on()
+                CPLED2.on()
+                drive(1,1) #continues to drive straight
+                time.sleep(restTime) #sleeps for the rest time to allow it to run
+                stop_motors() #stop motors
+                return #break from the loop, return the function which called it
+
+        else: #left side 
+            if(holdDistance > USLeft and (holdDistance - USLeft > centerMargin)): #not in center margin zone and needs to correct left
+                lPower = holdDistance/USLeft #left power is set to a value based on the difference between the two distances
+                CPLED1.on()
+                CPLED2.off()
+                drive(lPower, 1) #calls the drive function
+                time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
+                stop_motors()
+            elif(holdDistance < USLeft and (USLeft - holdDistance > centerMargin)): #not in center margin zone and needs to correct right
+                rPower = USLeft/holdDistance #right power is set to a value based on the difference between the two distances
+                CPLED1.off()
+                CPLED2.on()
+                drive(1, rPower) #calls the drive function
+                time.sleep(restTime) #allows it to run for the amount of "restTime" then stops motors
+                stop_motors()
+            else: #within center margin zone go straight
+                CPLED1.on()
+                CPLED2.on()
+                drive(1,1) #continues to drive straight
+                time.sleep(restTime) #sleeps for the rest time to allow it to run
+                stop_motors() #stop motors
+                return #break from the loop, return the function which called it
 
 def Turn(direction): #true is right turn, false is left turn
     if direction: #right turn
@@ -155,12 +206,12 @@ def FrontDetect(USFront,USLeft,USRight):
         if(USLeft<USRight): #left is shorter than right; right turn
             if(USRight-USLeft > centerMargin):
                 Turn(True)
-                return
+                return True
         elif(USRight>USLeft):
             if(USRight-USLeft > centerMargin):
                 Turn(False)
-                return
-    return
+                return True
+    return False
 ### SENSOR INPUT FUNCTIONS ###
         
 def ultra(trigger, echo): #inputs are the GPIO pins
@@ -219,8 +270,23 @@ def run_program():
         UL = ultra(trigger_left, echo_left)
         UC = ultra(trigger_center, echo_center)
         
-        FrontDetect(UC, UL, UR)
-        midStay(UL,UR)
+        if (FrontDetect(UC, UL, UR)): #So that front detect running means that midStay doesn't run, most of the time this will not trigger
+        else:#the most of the time it doesn't trigger
+            if(UL > sideLimit and UR < sideLimit):#left side is really long and the other side isn't but front detect hasn't triggered
+                if(!holdNeeded): #if it's currently holding it won't override
+                    holdDistance = UR #value to hold the distance of right side which is reliably in middle
+                    holdNeeded = True #toggle activated
+                    holdSide = True #side that's holding is the right side
+                midStay(UL,UR) #calls midStay
+            elif(UR > sideLimit and UR < sideLimit): #same for right side
+                if(!holdNeeded): #same as above
+                    holdDistance = UL #UL is reliable
+                    holdNeeded = True #toggle selected
+                    holdSide = False #right side
+                midStay(UL,UR) #standard call
+            else:
+                midStay(UL,UR) #normal ops
+                holdNeeded=False #reset to false toggle
         
         for i in range(8): #8 Light locations to light
             if not color_swap: #sets the color for each location controlled by color_swap = not color_swap
