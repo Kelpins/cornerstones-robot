@@ -3,17 +3,17 @@ import time
 from neopixel import NeoPixel as np
 import utime
 ### LIMITS FOR THE DRIVE ALGORITHM ###
-sideLimit = 20 #25 cm from side wall
-frontLimit = 7 #7cm from front wall
-frontStopLimit = 75
-goStraightTime = 0.5 #goes forward for 1/2 second after turning
-turnTime = 0.25 #robot turns for 0.625 seconds
-restTime = 0.15 #each time the thing runs it drives for 0.2 seconds before correcting
-centerMargin = 2.5 #number of centimeters allowed for no changes
-runtime = 900 #number of seconds the program runs for
-holdNeeded = False #universal trigger
-holdDistance = 0 #the distance being held
-holdSide = False #true is right | false is left
+sideLimit = 20 # robot uses readings within 25 cm from side wall
+frontLimit = 7 # robot stops before reaching 7cm from front wall
+frontStopLimit = 75 # 75 cm signifies that robot has reached the end of the maze
+goStraightTime = 0.5 # robot goes forward for 0.5 seconds after turning so side sensors register the walls
+turnTime = 0.25 # a 90 degree turn takes the robot 0.385 seconds
+restTime = 0.25 # each iteration of the algorithm drives for 0.15 seconds before taking new sensor inputs
+centerMargin = 2.5 # number of centimeters allowed for no changes
+runtime = 900 # number of seconds the program runs for
+holdNeeded = False # universal trigger
+holdDistance = 0 # the distance being held
+holdSide = False # true is right | false is left
 ### CP LIGHTS ###
 CPLED1 = Pin(8, Pin.OUT)
 CPLED2 = Pin(9, Pin.OUT)
@@ -246,7 +246,7 @@ def FrontDetect(USFront,USLeft,USRight):
 def ultra(trigger, echo): #inputs are the GPIO pins
     print("ULTRA CALLED")
     avgDist = [] #avg list to hold values so that it runs three times
-    for i in range(7): #runs 5 times so that one value is not way crazy
+    for i in range(3): #runs 5 times so that one value is not way crazy
         trigger.low()
         utime.sleep_us(2)
         trigger.high()
@@ -257,13 +257,13 @@ def ultra(trigger, echo): #inputs are the GPIO pins
         signalon = 0   # Initialize
         while echo.value() == 0:
             signaloff = utime.ticks_us()
-            if(signaloff > 10000000000):
+            if(signaloff > 5000000000):
                 print("stuck in loop")
                 return 20
         
         while echo.value() == 1:
             signalon = utime.ticks_us()
-            if(signalon > 10000000000):
+            if(signalon > 5000000000):
                 print("stuck in loop")
                 return 20
                 
@@ -274,10 +274,8 @@ def ultra(trigger, echo): #inputs are the GPIO pins
         time.sleep(0.05)
         
     avgDist.remove(max(avgDist)) #removes highest
-    avgDist.remove(min(avgDist)) #removes lowest
-    avgDist.remove(max(avgDist)) #removes 2ndhighest
     result = sum(avgDist) / len(avgDist)
-    return result #returns an average of the remaining four
+    return result #returns an average of the remaining two
     
 ### MAIN PROGRAM ###
 def run_program():
