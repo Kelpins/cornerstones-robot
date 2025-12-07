@@ -1,7 +1,5 @@
 from machine import Pin, PWM
 import time
-from neopixel import NeoPixel as np
-import utime
 
 
 ### CONSTANTS FOR THE DRIVE ALGORITHM ###
