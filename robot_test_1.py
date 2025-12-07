@@ -287,38 +287,48 @@ def ultra(trigger, echo): # inputs are the GPIO pins
             if(signalon > 5000000000):
                 print("stuck in loop")
                 return 20
-                
+        
+        # given true sensor readings, calculate distance and add to the list
         timepassed = signalon - signaloff
         distance = (timepassed * 0.0343) / 2
         print(distance)
         avgDist.append(distance)
         time.sleep(0.05)
-        
-    avgDist.remove(max(avgDist)) #removes highest
-    result = sum(avgDist) / len(avgDist)
-    return result #returns an average of the remaining two
     
+    # removes the highest value (most likely outlier)
+    avgDist.remove(max(avgDist))
+    # averages the remaining values
+    result = sum(avgDist) / len(avgDist)
+    return result
+    
+
 ### MAIN PROGRAM ###
 def run_program():
     
+    # initializes stops variable; determines how many times the robot should read that it's out of the maze for it to stop
     stops = 0
     
+    # color_swap determines which colors should be shown on the light bars, and swaps every iteration
     color_swap = False
+
+    # waits a second before recognizing start button
+    time.sleep(1)
     
-    time.sleep(2)
+    # waits for the start button to be pressed
     print("Waiting for start button")
     while start_button.value() == 1:
         time.sleep(0.05)
     print("Button pressed. Starting robot!")
     
+    # waits half a second for user to remove hand
     time.sleep(0.5)
     
+    # starts a timer to calculate runtime (unused currently)
     startTime = utime.time()
     time.sleep(0.1)
     
-    loop_count = 0
+    # change to utime.time() - startTime < runtime to run for runtime
     while (utime.time()-startTime>=0):
-        loop_count += 1
         
         print("Reading sensors")
         UR = ultra(trigger_right, echo_right) 
@@ -350,15 +360,20 @@ def run_program():
         else:
             print("Front obstacle handled, skipping midStay")
         
+        # if all sensors read values larger than they would see in the maze
         if (UR > sideLimit and UL > sideLimit and UC > frontStopLimit):
+            # and it has already done so 3 times, end the program
             if (stops >= 5):
                 print("Program End Case Reached")
                 stop_motors()
+                # runs the program again for ease of testing, but waits on start button
                 run_program()
                 break
             else:
+                # increase stops by one to track how many times code has run
                 stops += 1
         else:
+            # reset stops to 0 in case this errantly happens during the maze pathfinding
             stops = 0
         
         print("Updating LED strips...")
@@ -376,6 +391,7 @@ def run_program():
         light_strip_2.write()
         print("LED strips updated")
         
+        # if the start button is pressed while robot runs, stop program and await start button again
         if start_button.value() != 1:
             print("Stop button pressed!")
             stop_motors()
