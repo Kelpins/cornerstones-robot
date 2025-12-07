@@ -363,7 +363,7 @@ def run_program():
         # if all sensors read values larger than they would see in the maze
         if (UR > sideLimit and UL > sideLimit and UC > frontStopLimit):
             # and it has already done so 3 times, end the program
-            if (stops >= 5):
+            if (stops >= 3):
                 print("Program End Case Reached")
                 stop_motors()
                 # runs the program again for ease of testing, but waits on start button
