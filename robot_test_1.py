@@ -7,71 +7,82 @@ sideLimit = 20 # robot uses readings within 25 cm from side wall
 frontLimit = 7 # robot stops before reaching 7cm from front wall
 frontStopLimit = 75 # 75 cm signifies that robot has reached the end of the maze
 goStraightTime = 0.5 # robot goes forward for 0.5 seconds after turning so side sensors register the walls
-turnTime = 0.25 # a 90 degree turn takes the robot 0.385 seconds
-restTime = 0.25 # each iteration of the algorithm drives for 0.15 seconds before taking new sensor inputs
-centerMargin = 2.5 # number of centimeters allowed for no changes
+turnTime = 0.385 # a 90 degree turn takes the robot 0.385 seconds
+restTime = 0.2 # each iteration of the algorithm drives for 0.2 seconds before taking new sensor inputs
+centerMargin = 2.0 # number of centimeters of robot drift allowed for no changes
 runtime = 900 # number of seconds the program runs for
-holdNeeded = False # universal trigger
+holdNeeded = False # True if robot senses a corridor to one side; holds robot to the other wall
 holdDistance = 0 # the distance being held
-holdSide = False # true is right | false is left
-### CP LIGHTS ###
+holdSide = False # True if robot needs to hold to right wall, False is left
+
+
+### CP (checkpoint) LIGHT PIN ASSIGNMENTS ###
 CPLED1 = Pin(8, Pin.OUT)
 CPLED2 = Pin(9, Pin.OUT)
+
+
 ### MOTOR PIN ASSIGNMENTS ###
+
 # Motor A pins
 ENA = PWM(Pin(21))
 ENA.freq(1000)
 IN1 = Pin(20, Pin.OUT)
 IN2 = Pin(19, Pin.OUT)
+
 # Motor B pins
 IN3 = Pin(18, Pin.OUT)
 IN4 = Pin(17, Pin.OUT)
 ENB = PWM(Pin(16))
 ENB.freq(1000)
+
+
 ### ULTRASONIC PIN ASSIGNMENTS ###
+
 trigger_center = Pin(10, Pin.OUT)
 echo_center = Pin(11, Pin.IN)
 trigger_left = Pin(15, Pin.OUT)
 echo_left = Pin(14, Pin.IN)
 trigger_right = Pin(6,Pin.OUT)
 echo_right = Pin(7,Pin.IN)
+
+
 ### LED STRIP PIN & COLOR ASSIGNMENTS ###
 light_strip_1 = np(Pin(12), 8)
 light_strip_2 = np(Pin(1), 8)
-color1 = (255, 0, 0)
-color2 = (0, 15, 150)
+color1 = (255, 0, 0) # color 1: red
+color2 = (0, 15, 150) # color 2: blue
+# color_swap determines which colors should be shown on the light bars, and swaps every iteration
 color_swap = False
+
+
 ### START BUTTON PIN ASSIGNMENT ###
 start_button = Pin(13, Pin.IN, Pin.PULL_UP)
+
+
 ### DRIVING FUNCTIONS ###
 # Spin left and right motors at a speed percentage
+# Each motor is kept to a minimum input of 22500 so the algorithm never outputs a vlue too low to move the motor
 # modL and modR (0 <= x <= 1)
 def drive(modL,modR):
-    
+
+    # duty_u16 can't take a negative number, so we reverse the pin states instead
     if (modL < 0):
         IN3.low()
         IN4.high()
-        ENB.duty_u16(max(int(-modL * 1.0 * 65535 / 1.575), 22500))
-        #repeatTick=0 #will reset the repeat Tick counter everytime it calls drive
-        print("drive if 1")
+        ENB.duty_u16(max(int(-modL * 1.0 * 65535 / 1.575), 22500)) # left motor reverse case
     else:
-        IN3.high()#Left Motor
+        IN3.high()
         IN4.low()
-        ENB.duty_u16(max(int(modL * 1.0 * 65535 / 1.575), 22500))
-        #repeatTick = 0 #for both if/elses
-        print("drive else 1")
+        ENB.duty_u16(max(int(modL * 1.0 * 65535 / 1.575), 22500)) # left motor forward case
         
     if (modR < 0):
         IN1.low()
         IN2.high()
-        ENA.duty_u16(int(0.8375 * max(int(-modR * 65535 / 1.575), 22500)))
-        print("drive if 2")
-        
+        ENA.duty_u16(int(0.8375 * max(int(-modR * 65535 / 1.575), 22500))) # right motor reverse case
     else:
-        IN1.high()#Right Motor
+        IN1.high()
         IN2.low()
-        ENA.duty_u16(int(0.8375 * max(int(modR * 65535 / 1.575), 22500)))
-        print("drive else 2")
+        ENA.duty_u16(int(0.8375 * max(int(modR * 65535 / 1.575), 22500))) # right motor forward case
     print("DRIVE FUNCTION COMPLETE")
     
 # Stop both motors
@@ -80,7 +91,7 @@ def stop_motors():
     ENB.duty_u16(0)
     print("STOP_MOTORS COMPLETE")
     
-# Keep robot at a set distance from a wall on the right side   
+# Keep robot in the middle of the two walls   
 def midStay(USLeft, USRight, USCenter): #takes in the distance from the wall in cm
     rPower = 0 #initialize R power
     lPower = 0 #init L Power
@@ -206,24 +217,28 @@ def midStay(USLeft, USRight, USCenter): #takes in the distance from the wall in 
                 print("MIDSTAY COMPLETE (hold left, straight)")
                 return #break from the loop, return the function which called it
                 
-def Turn(direction): #true is right turn, false is left turn
-    if direction: #right turn
+# Spins in place
+def Turn(isDirectionRight): #True is right turn, False is left turn
+    if isDirectionRight: #right turn
+        # set both checkpoint LEDs to OFF to signify a turn
         CPLED1.off()
         CPLED2.off()
-        drive(0.75,-0.75) #right goes to -1, left goes to 1, turns right
-        time.sleep(turnTime) #waits during turn time
-        stop_motors()
-        print("TURN COMPLETE (RIGHT)")
+        # left wheel forward 0.75 speed, right motor reverse 0.75 speed to spin in place
+        drive(0.75,-0.75)
+        time.sleep(turnTime) # waits for the duration of turn time
+        stop_motors() # stops the spin
         return
     else: #left turn
+        # set both checkpoint LEDs to OFF to signify a turn
         CPLED1.off()
         CPLED2.off()
+        # left wheel reverse 0.75 speed, right motor forward 0.75 speed to spin in place
         drive(-0.75,0.75) #left turn
-        time.sleep(turnTime)
-        stop_motors()
-        print("TURN COMPLETE (LEFT)")
+        time.sleep(turnTime) # waits for the duration of turn time
+        stop_motors() # stops the spin
         return
-    
+
+# turns the robot 90 degrees if faced with a wall in front
 def FrontDetect(USFront,USLeft,USRight):
     print("FrontDetect called - USFront:", USFront)
     if(USFront<frontLimit): #there is something in front of the robot
@@ -241,28 +256,34 @@ def FrontDetect(USFront,USLeft,USRight):
     print("FRONTDETECT COMPLETE (no obstacle)")
     return False
     
+
 ### SENSOR INPUT FUNCTIONS ###
         
-def ultra(trigger, echo): #inputs are the GPIO pins
+def ultra(trigger, echo): # inputs are the GPIO pins
     print("ULTRA CALLED")
-    avgDist = [] #avg list to hold values so that it runs three times
-    for i in range(3): #runs 5 times so that one value is not way crazy
+    avgDist = [] # avg list to hold values so that it runs three times
+    for i in range(3): # runs 3 times for redundancy
+        # sends out sound pulse
         trigger.low()
         utime.sleep_us(2)
         trigger.high()
         utime.sleep_us(5) 
         trigger.low()
                 
-        signaloff = 0  # Initialize
-        signalon = 0   # Initialize
+        signaloff = 0
+        signalon = 0
+        # wait for echo pin to turn on, save then length
         while echo.value() == 0:
             signaloff = utime.ticks_us()
+            # if echo value doesn't turn on after a sufficient time (a few seconds), return some distance to keep the program going
             if(signaloff > 5000000000):
                 print("stuck in loop")
                 return 20
         
+        # wait for echo pin to turn on, save then length
         while echo.value() == 1:
             signalon = utime.ticks_us()
+            # if echo value doesn't turn off after a sufficient time (a few seconds), return some distance to keep the program going
             if(signalon > 5000000000):
                 print("stuck in loop")
                 return 20
